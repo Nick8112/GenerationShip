@@ -58,6 +58,7 @@ class Person:
 
 	age: int
 	job: str
+	partnered: bool = False # I will implement a way for partnered people to "remain" with their spouse throughout their life eventually 
 	alive: bool = True
 	sex: bool = field(default_factory=lambda: random.choice([True,False])) #True = male, fix later
 	
@@ -97,6 +98,11 @@ class Simulation:
 			if roll <= 0.25:   # only  25% of people will have this job to start
 				start_age = random.randint(min_start_age, max_start_age) #only people of this age range qualify to board the ship at first
 				new_person = Person(start_age, job = "Farmer")
+			
+			elif 0.25 < roll <=0.5:
+				start_age = random.randint(min_start_age, max_start_age)
+				new_person = Person(start_age, job = "Maintenance")
+			
 				
 			else:
 				start_age = random.randint(min_start_age, max_start_age) 
@@ -106,11 +112,7 @@ class Simulation:
 			
 		
 		self.ship = Ship(population)
-		
-			
-					
-				
-				
+						
 				
 		
 	def living_people(self):
@@ -185,8 +187,9 @@ class Simulation:
 			
 		return average_age, average_death_age
 	
+
 	
-	def sort_by_sex(self):   # this might be useful later, idk
+	def sort_by_sex(self):   
 		
 		male = []
 		female = [] 
@@ -198,7 +201,7 @@ class Simulation:
 				female.append(person)
 		return male, female
 
-
+	
 	
 	
 	def birth_candidates(self):     #match people of similar ages
@@ -254,7 +257,7 @@ class Simulation:
 	
 		family_list = zip(self.birth_candidates()[0], self.birth_candidates()[1], self.birth_rate(), strict = False )
 		
-		family_rates = [item[2] for item in family_list]
+		family_rates = [item[2] for item in family_list] #grab the mom
 		
 		births = 0
 		
@@ -282,8 +285,6 @@ class Simulation:
 	def step(self):
 		
 		
-			
-		
 		self.year += 1
 		
 		for person in self.living_people():
@@ -297,6 +298,8 @@ class Simulation:
 		hunger = self.ship.food_consume(len(self.living_people())) 
 		
 		Year_deaths = self.death_check(hunger)
+		
+		self.ship.maintanence(self.living_people())
 		
 		
 		
@@ -352,6 +355,22 @@ class Simulation:
 			if len(living) == 0:
 				print(Fail1)
 				print(Fail)
+				times = np.linspace(0, self.year,len(population_over_time))
+				plt.plot(times, population_over_time)
+				plt.ylabel("Crew Population")
+				plt.xlabel("Years")
+				plt.grid(True)                                      #I like graphs
+				plt.show()
+				plt.plot(times, births)
+				plt.ylabel("Births")
+				plt.xlabel("Years")
+				plt.grid(True)
+				plt.show()
+				plt.plot(times, deaths)
+				plt.ylabel("Deaths")
+				plt.xlabel("Years")
+				plt.grid(True)
+				plt.show()
 				sys.exit(1)
 			
 			
@@ -380,6 +399,8 @@ class Ship:
 	
 		
 		self.food = 100 * initial_crew # 100 food units per inital crew member 
+		
+		self.condition = 100
 	
 	
 	
@@ -394,10 +415,12 @@ class Ship:
 				if roll <= 0.25:
 					person.job = "Farmer"
 					workers.append(person)
+			if person.age >= 60 and person.job == "Farmer": #Happy retirement! 
+				person.job == "None"
 		
 		print(f'There are currently {len(workers)} Farmers working')
 		
-		harvest = len(workers) * 150
+		harvest = len(workers) * 150 # enough food to sustain crew
 		
 		self.food += harvest
 		
@@ -421,6 +444,36 @@ class Ship:
 		
 		
 		return 1 - feed_index	# a value of 0 adds nothing to the death probability 
+	
+	
+	def condition(self):
+		
+		self.condition -= 5
+		
+		return self.condition
+		
+	def maintanence(self, crew):
+	
+		workers = []
+		for person in crew:
+			if 18 <= person.age < 60 and person.job == "Maintanence":  #grab current maintanence and have chance hire more once they turn 18
+				workers.append(person)
+			if person.age == 18 and person.job == "None":
+				roll = random.random()
+				if roll <= 0.25:
+					person.job = "Farmer"
+					workers.append(person)
+			if person.age >= 60 and person.job == "Maintanence": #Happy retirement! 
+				person.job == "None"
+		
+		print(f'There are currently {len(workers)} Maintanence workers')
+		
+		
+		
+		
+		
+		
+		
 		
 	
 		
