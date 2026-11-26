@@ -57,9 +57,10 @@ Start = [Timer1, Timer2, Timer3, Launch]
 class Person:
 
 	age: int
+	job: str
 	alive: bool = True
 	sex: bool = field(default_factory=lambda: random.choice([True,False])) #True = male, fix later
-	job: bool = False # only one job for now
+	
 	
 	
 	def age_one_year(self):
@@ -81,24 +82,28 @@ class Simulation:
 		self.max_start_age = max_start_age
 		self.voyage_time = voyage_time
 		self.population = population
-		
+	
 		
 		if population == 0:
 			print("Cannot launch with no crew")
 			sys.exit(1)
 		if population == 1:
-			print("Need at least one Male and one Female to launch")
+			print("Need at least one Male and one Female to launch") 
 			sys.exit(1)
 		
 		for _ in range(population):
+			
 			roll = random.random()
-			if roll <= 0.1:            # only  10% of people will have this job to start
+			if roll <= 0.25:   # only  25% of people will have this job to start
 				start_age = random.randint(min_start_age, max_start_age) #only people of this age range qualify to board the ship at first
-				new_person = Person(start_age, job = True)
+				new_person = Person(start_age, job = "Farmer")
+				
 			else:
-				start_age = random.randint(min_start_age, max_start_age) #only people of this age range qualify to board the ship at first
-				new_person = Person(start_age, job = False)
+				start_age = random.randint(min_start_age, max_start_age) 
+				new_person = Person(start_age, job = "None")
+				
 			self.people.append(new_person)
+			
 		
 		self.ship = Ship(population)
 		
@@ -263,10 +268,10 @@ class Simulation:
 		for _ in range(births):
 			roll = random.random()
 			if (infant_death_chance/100) < roll:
-				baby = Person(0)
+				baby = Person(0, job = "None")
 			
 			elif (infant_death_chance/100) >= roll:
-				baby = Person(0, alive = False)
+				baby = Person(0, alive = False, job = "None")
 			self.people.append(baby)
 		
 		return births
@@ -287,13 +292,15 @@ class Simulation:
 		
 		Year_births = self.birth_check()
 		
+		farmers, food = self.ship.farming(self.living_people())
+		
 		hunger = self.ship.food_consume(len(self.living_people())) 
 		
 		Year_deaths = self.death_check(hunger)
 		
 		
 		
-		return Year_births, Year_deaths
+		return Year_births, Year_deaths, farmers, food
 							
 			
 	def run(self):
@@ -303,15 +310,16 @@ class Simulation:
 		births = []
 		deaths = []
 		
-		#time.sleep(2)
+		time.sleep(2)
 		
 		for i in range(4):
 			print(Start[i])
-			#time.sleep(1)
-		#time.sleep(1)
+			
+			time.sleep(1)
+		time.sleep(1)
 		
 		for _ in range(self.voyage_time):
-			year_births, year_deaths = self.step()
+			year_births, year_deaths, farmers, food = self.step()
 			births.append(year_births)
 			living = self.living_people()
 			living_count = len(living)
@@ -364,6 +372,7 @@ class Simulation:
 		plt.grid(True)
 		plt.show()
 		
+		
 
 
 class Ship:
@@ -374,10 +383,27 @@ class Ship:
 	
 	
 	
-	def farming(self, farmers):
+	def farming(self, crew):
 		
+		workers = []
+		for person in crew:
+			if 18 <= person.age < 60 and person.job == "Farmer":  #grab current farmers and have chance hire more once they turn 18
+				workers.append(person)
+			if person.age == 18 and person.job == "None":
+				roll = random.random()
+				if roll <= 0.25:
+					person.job = "Farmer"
+					workers.append(person)
 		
+		print(f'There are currently {len(workers)} Farmers working')
 		
+		harvest = len(workers) * 150
+		
+		self.food += harvest
+		
+		print(f"There is {self.food} food")	
+		
+		return workers, self.food
 		
 		
 	def food_consume(self, crew):
@@ -391,7 +417,7 @@ class Ship:
 		
 		self.food -= food_needed * feed_index # people can only eat based on available food
 		
-		
+		print(f"There is {self.food} after eating")
 		
 		
 		return 1 - feed_index	# a value of 0 adds nothing to the death probability 
@@ -409,14 +435,7 @@ class Ship:
 		
 		
 		
-		
-		
-		
-		
-		
-		
-		
-		
+			
 	
 			
 if __name__ == '__main__':
